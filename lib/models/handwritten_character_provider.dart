@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:hiragana_game/data/handwritten_character.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class StrokesNotifier extends StateNotifier<HandwrittenCharacter> {
-  StrokesNotifier() : super([]);
+class HandwrittenCharacterNotifier extends StateNotifier<HandwrittenCharacter> {
+  HandwrittenCharacterNotifier() : super([]);
 
   void addStroke(Offset offset) {
     state = [

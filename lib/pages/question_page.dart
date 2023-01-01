@@ -1,8 +1,11 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_mlkit_digital_ink_recognition/google_mlkit_digital_ink_recognition.dart'
     as r;
 import 'package:hiragana_game/data/handwritten_character.dart';
+import 'package:hiragana_game/models/handwritten_character_provider.dart';
 import 'package:hiragana_game/widgets/cell.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -11,8 +14,22 @@ class QuestionPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = useState('...');
+    return ProviderScope(
+      overrides: [
+        handwrittenCharacterProvider
+            .overrideWith((ref) => HandwrittenCharacterNotifier()),
+      ],
+      child: const _Page(),
+    );
+  }
+}
 
+class _Page extends HookConsumerWidget {
+  const _Page();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final result = useState('...');
     return Scaffold(
       body: Center(
         child: Column(
@@ -22,15 +39,19 @@ class QuestionPage extends HookConsumerWidget {
               result.value,
               style: const TextStyle(fontSize: 20),
             ),
-            const SizedBox(
-              width: 300,
-              height: 300,
-              child: ListenableCell(),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final size = min(
+                    constraints.maxWidth / 4 * 3, constraints.maxHeight / 2);
+                return SizedBox.square(
+                  dimension: size,
+                  child: const ListenableCell(),
+                );
+              },
             ),
             ElevatedButton(
               onPressed: () {
-                // ignore: unused_result
-                ref.refresh(strokesProvider.notifier);
+                ref.refresh(handwrittenCharacterProvider.notifier);
                 result.value = '...';
               },
               child: const Text('Clear'),
@@ -40,11 +61,11 @@ class QuestionPage extends HookConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          result.value = await _check(ref.read(strokesProvider));
+          result.value = await _check(ref.read(handwrittenCharacterProvider));
         },
         tooltip: 'check',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 

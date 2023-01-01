@@ -3,19 +3,19 @@ import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:hiragana_game/data/handwritten_character.dart';
-import 'package:hiragana_game/models/strokes_provider.dart';
+import 'package:hiragana_game/models/handwritten_character_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-final strokesProvider =
-    StateNotifierProvider.autoDispose<StrokesNotifier, HandwrittenCharacter>(
-        (_) => StrokesNotifier());
+final handwrittenCharacterProvider =
+    StateNotifierProvider<HandwrittenCharacterNotifier, HandwrittenCharacter>(
+        (_) => throw UnimplementedError());
 
 class ListenableCell extends HookConsumerWidget {
   const ListenableCell({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifier = ref.watch(strokesProvider.notifier);
+    final notifier = ref.watch(handwrittenCharacterProvider.notifier);
 
     return Listener(
       onPointerDown: (details) {
@@ -38,19 +38,19 @@ class Cell extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final strokes = ref.watch(strokesProvider);
+    final chara = ref.watch(handwrittenCharacterProvider);
 
     return CustomPaint(
-      painter: _Painter(strokes, devicePixelRatio),
+      painter: _Painter(chara, devicePixelRatio),
     );
   }
 }
 
 class _Painter extends CustomPainter {
-  final List<HandwrittenStroke> strokes;
+  final HandwrittenCharacter character;
   final double pixelSize;
 
-  _Painter(this.strokes, double devicePixelRatio)
+  _Painter(this.character, double devicePixelRatio)
       : pixelSize = 1 / devicePixelRatio;
 
   @override
@@ -80,14 +80,16 @@ class _Painter extends CustomPainter {
     final paint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
       ..strokeWidth = 3;
-    for (final stroke in strokes) {
+    for (final stroke in character) {
       canvas.drawPoints(PointMode.polygon, stroke, paint);
     }
   }
 
   @override
   bool shouldRepaint(_Painter oldDelegate) {
-    return !const DeepCollectionEquality().equals(strokes, oldDelegate.strokes);
+    return !const DeepCollectionEquality()
+        .equals(character, oldDelegate.character);
   }
 }
