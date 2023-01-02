@@ -5,27 +5,39 @@ import 'package:flutter/material.dart';
 import 'package:hiragana_game/data/handwritten_character.dart';
 import 'package:hiragana_game/models/handwritten_character_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:rate_limiter/rate_limiter.dart';
 
 final handwrittenCharacterProvider =
     StateNotifierProvider<HandwrittenCharacterNotifier, HandwrittenCharacter>(
         (_) => throw UnimplementedError());
 
 class ListenableCell extends HookConsumerWidget {
-  const ListenableCell({super.key});
+  final Function(List<String> result, HandwrittenCharacter character)? onCheck;
+
+  const ListenableCell({
+    super.key,
+    this.onCheck,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.watch(handwrittenCharacterProvider.notifier);
+    final check = debounce(() async {
+      final result = await notifier.check();
+      onCheck?.call(result, ref.read(handwrittenCharacterProvider));
+    }, const Duration(milliseconds: 500));
 
     return Listener(
       onPointerDown: (details) {
         notifier.addStroke(details.localPosition);
+        check.cancel();
       },
       onPointerMove: (details) {
         notifier.addPoint(details.localPosition);
       },
       onPointerUp: (details) {
         notifier.addPoint(details.localPosition);
+        check();
       },
       child: const Cell(),
     );
