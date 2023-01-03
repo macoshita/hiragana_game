@@ -5,41 +5,37 @@ import 'package:flutter/material.dart';
 import 'package:hiragana_game/data/handwritten_character.dart';
 import 'package:hiragana_game/models/handwritten_character_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:rate_limiter/rate_limiter.dart';
 
-final handwrittenCharacterProvider =
-    StateNotifierProvider<HandwrittenCharacterNotifier, HandwrittenCharacter>(
-        (_) => throw UnimplementedError());
+final handwrittenCharacterProvider = StateNotifierProvider.autoDispose<
+    HandwrittenCharacterNotifier,
+    HandwrittenCharacter>((_) => throw UnimplementedError());
 
 class ListenableCell extends HookConsumerWidget {
-  final Function(List<String> result, HandwrittenCharacter character)? onCheck;
-
-  const ListenableCell({
-    super.key,
-    this.onCheck,
-  });
+  const ListenableCell({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.watch(handwrittenCharacterProvider.notifier);
-    final check = debounce(() async {
-      final result = await notifier.check();
-      onCheck?.call(result, ref.read(handwrittenCharacterProvider));
-    }, const Duration(milliseconds: 500));
 
-    return Listener(
-      onPointerDown: (details) {
-        notifier.addStroke(details.localPosition);
-        check.cancel();
-      },
-      onPointerMove: (details) {
-        notifier.addPoint(details.localPosition);
-      },
-      onPointerUp: (details) {
-        notifier.addPoint(details.localPosition);
-        check();
-      },
-      child: const Cell(),
+    return AspectRatio(
+      aspectRatio: 1,
+      child: LayoutBuilder(builder: (context, constraints) {
+        return Listener(
+          onPointerDown: (details) {
+            notifier.addStroke(
+                details.localPosition.normalize(constraints.maxWidth));
+          },
+          onPointerMove: (details) {
+            notifier.addPoint(
+                details.localPosition.normalize(constraints.maxWidth));
+          },
+          onPointerUp: (details) {
+            notifier.addPoint(
+                details.localPosition.normalize(constraints.maxWidth));
+          },
+          child: const Cell(),
+        );
+      }),
     );
   }
 }
@@ -50,10 +46,13 @@ class Cell extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final chara = ref.watch(handwrittenCharacterProvider);
+    final character = ref.watch(handwrittenCharacterProvider);
 
-    return CustomPaint(
-      painter: _Painter(chara, devicePixelRatio),
+    return AspectRatio(
+      aspectRatio: 1,
+      child: CustomPaint(
+        painter: _Painter(character, devicePixelRatio),
+      ),
     );
   }
 }
@@ -95,7 +94,11 @@ class _Painter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = 3;
     for (final stroke in character) {
-      canvas.drawPoints(PointMode.polygon, stroke, paint);
+      canvas.drawPoints(
+        PointMode.polygon,
+        stroke.map((e) => e.denormalize(size.width)).toList(),
+        paint,
+      );
     }
   }
 
@@ -103,5 +106,19 @@ class _Painter extends CustomPainter {
   bool shouldRepaint(_Painter oldDelegate) {
     return !const DeepCollectionEquality()
         .equals(character, oldDelegate.character);
+  }
+}
+
+const _normalizedSize = 1000.0;
+
+extension _OffsetX on Offset {
+  Offset normalize(double size) {
+    final s = _normalizedSize / size;
+    return scale(s, s);
+  }
+
+  Offset denormalize(double size) {
+    final s = size / _normalizedSize;
+    return scale(s, s);
   }
 }
