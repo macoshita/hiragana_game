@@ -42,6 +42,7 @@ dependencies:
   equatable: ^2.0.5
   collection: ^1.16.0
   rate_limiter: ^1.0.0
+  go_router: ^6.0.0
 
 dev_dependencies:
   flutter_test:

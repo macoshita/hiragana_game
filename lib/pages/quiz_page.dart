@@ -6,6 +6,7 @@ import 'package:google_mlkit_digital_ink_recognition/google_mlkit_digital_ink_re
     as r;
 import 'package:hiragana_game/data/handwritten_character.dart';
 import 'package:hiragana_game/models/handwritten_character_provider.dart';
+import 'package:hiragana_game/models/quiz_data_provider.dart';
 import 'package:hiragana_game/widgets/cell.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:rate_limiter/rate_limiter.dart';
@@ -14,12 +15,20 @@ final handwrittenCharactersProvider = StateNotifierProvider.family
     .autoDispose<HandwrittenCharacterNotifier, HandwrittenCharacter, int>(
         (_, __) => HandwrittenCharacterNotifier());
 
-class QuestionPage extends HookConsumerWidget {
-  const QuestionPage({super.key});
+class QuizPage extends HookConsumerWidget {
+  final int stage;
+
+  const QuizPage({super.key, required this.stage});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final answer = 'りざーどん';
+    final quizData = ref.watch(quizDataProvider);
+    if (quizData.isLoading) {
+      throw 'QuizData is not loaded';
+    }
+
+    final quiz = quizData.value![stage];
+    final answer = quiz.hiragana;
     final currentIndex = useState(0);
     final correct = useState(false);
     final currentNotifier =
